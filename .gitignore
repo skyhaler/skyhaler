@@ -1,4 +1,3 @@
-@"
 # Virtual environments
 .venv/
 venv/
@@ -8,7 +7,21 @@ env/
 __pycache__/
 *.py[cod]
 *$py.class
+*.egg-info/
 
 # Environment variables / secrets
 .env
-"@ | Out-File -Encoding utf8 .gitignore
+!.env.example
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
