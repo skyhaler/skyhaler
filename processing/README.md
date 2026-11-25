@@ -27,10 +27,10 @@ Secrets and per-person values come from environment variables (or the repo-root 
 ```python
 from skyhaler_processing import load_config
 
-config = load_config()              # processing/config.yaml + repo-root .env
-config.periods()                    # [(date(2025, 7, 1), date(2025, 7, 10)), ...] inclusive windows
-config.aoi_geojson()                # parsed AOI GeoJSON
-gee = config.require_gee()          # raises GeeConfigError if GEE settings are missing
+config = load_config()  # processing/config.yaml + repo-root .env
+config.periods()  # [(date(2025, 7, 1), date(2025, 7, 10)), ...] inclusive windows
+config.aoi_geojson()  # parsed AOI GeoJSON
+gee = config.require_gee()  # raises GeeConfigError if GEE settings are missing
 ```
 
 Invalid values (reversed season, negative `k`, unsorted thresholds, missing AOI file, ...) raise a
