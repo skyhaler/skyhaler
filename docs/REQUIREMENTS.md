@@ -28,3 +28,49 @@ Study area: Bucharest. Deadline: ROSPIN Demo Day, December 2026 (confirm date: 1
 ## Open questions
 - Final study area (Pleiades 38 km2 vs a KOMPSAT-3A tile).
 - Who owns which component.
+
+## Decision log
+
+### D001 — Mapping library: Leaflet vs. MapLibre (Issue #5)
+
+- Date: 2026-11-25
+- Decision: MapLibre GL JS
+
+#### Comparison
+
+| Criterion | Leaflet | MapLibre GL JS |
+| --- | --- | --- |
+| GeoJSON layers | Native support | Native support |
+| VHR raster/tile layers | Native support | Native support |
+| Legends | Custom controls | Custom controls |
+| Geolocation | Built-in (`map.locate()`) | Built-in (`GeolocateControl`) |
+| Rendering | SVG / Canvas | GPU-accelerated WebGL |
+| Vector tiles | Requires plugins | Native support |
+| Performance with many cells | May require additional optimization | Better suited to large, tiled datasets |
+| Implementation complexity | Low | Moderate |
+
+#### Rationale
+
+MapLibre GL JS was selected for its GPU-accelerated rendering,
+native vector tile support and data-driven styling. These
+features provide better scalability for visualizing large
+numbers of pollen-risk cells, air quality layers and VHR imagery.
+
+#### Implementation
+
+- Use `maplibre-gl` with React and TypeScript.
+- Use GeoJSON for initial risk and air quality layers.
+- Use raster tiles for VHR imagery.
+- Switch to vector tiles if performance becomes an issue.
+- Implement custom legends and built-in geolocation.
+- Serve licensed imagery and derived data locally.
+
+#### Trade-offs
+
+Higher implementation complexity and WebGL dependency.
+Performance must be validated with actual project datasets.
+
+#### References
+
+- https://leafletjs.com/reference.html
+- https://maplibre.org/maplibre-gl-js/docs/
