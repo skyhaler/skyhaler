@@ -16,10 +16,6 @@ class Period(Base):
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
     label: Mapped[str] = mapped_column(String, nullable=False)
-    geom: Mapped[Any] = mapped_column(
-        Geometry(geometry_type="POLYGON", srid=4326, spatial_index=True),
-        nullable=False,
-    )
 
     risk_cells: Mapped[list["RiskCell"]] = relationship(back_populates="period")
     no2_cells: Mapped[list["No2Cell"]] = relationship(back_populates="period")
@@ -35,10 +31,6 @@ class ModelRun(Base):
     params: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     k: Mapped[float] = mapped_column(Float, nullable=False)
     metrics: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    geom: Mapped[Any] = mapped_column(
-        Geometry(geometry_type="POLYGON", srid=4326, spatial_index=True),
-        nullable=False,
-    )
 
     risk_cells: Mapped[list["RiskCell"]] = relationship(back_populates="model_run")
 
