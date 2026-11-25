@@ -19,8 +19,9 @@ read values from it and never hard-code dates, area, thresholds or `k`.
 Secrets and per-person values come from environment variables (or the repo-root `.env`, see
 `.env.example`), never from `config.yaml`:
 
-- `GEE_PROJECT`: Google Cloud project used for Earth Engine
-- `GEE_SERVICE_ACCOUNT_KEY`: path to the service account JSON key file (keep it outside git)
+- `GEE_PROJECT` (required for GEE scripts): Google Cloud project used for Earth Engine
+- `GEE_SERVICE_ACCOUNT_KEY` (optional): path to a service account JSON key file, kept outside
+  git. Leave it empty to use your personal Google account: run `earthengine authenticate` once.
 
 ## Usage
 
@@ -30,7 +31,7 @@ from skyhaler_processing import load_config
 config = load_config()  # processing/config.yaml + repo-root .env
 config.periods()  # dekads: [(date(2025, 7, 1), date(2025, 7, 10)), ...] inclusive
 config.aoi_geojson()  # parsed AOI GeoJSON
-gee = config.require_gee()  # raises GeeConfigError if GEE settings are missing
+gee = config.require_gee()  # raises GeeConfigError if GEE_PROJECT is missing
 ```
 
 Invalid values (reversed season, negative `k`, unsorted thresholds, missing AOI file, ...) raise a

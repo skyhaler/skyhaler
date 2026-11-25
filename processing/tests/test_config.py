@@ -199,17 +199,36 @@ def test_gee_optional_at_load_time() -> None:
     assert config.gee.service_account_key is None
 
 
-def test_require_gee_raises_when_env_missing() -> None:
+def test_require_gee_raises_when_project_missing() -> None:
     config = load_config(dotenv_path=None)
-    with pytest.raises(GeeConfigError, match=f"{ENV_GEE_PROJECT}.*{ENV_GEE_SERVICE_ACCOUNT_KEY}"):
+    with pytest.raises(GeeConfigError, match=ENV_GEE_PROJECT):
         config.require_gee()
 
 
-def test_require_gee_raises_when_one_var_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_require_gee_raises_when_only_key_set(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    key = tmp_path / "key.json"
+    key.write_text("{}", encoding="utf-8")
+    monkeypatch.setenv(ENV_GEE_SERVICE_ACCOUNT_KEY, str(key))
+    with pytest.raises(GeeConfigError, match=ENV_GEE_PROJECT):
+        load_config(dotenv_path=None).require_gee()
+
+
+def test_require_gee_project_only_uses_personal_auth(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(ENV_GEE_PROJECT, "test-project")
-    config = load_config(dotenv_path=None)
-    with pytest.raises(GeeConfigError, match=ENV_GEE_SERVICE_ACCOUNT_KEY):
-        config.require_gee()
+    gee = load_config(dotenv_path=None).require_gee()
+    assert gee.project == "test-project"
+    assert gee.service_account_key is None
+
+
+def test_require_gee_raises_when_key_file_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(ENV_GEE_PROJECT, "test-project")
+    monkeypatch.setenv(ENV_GEE_SERVICE_ACCOUNT_KEY, str(tmp_path / "missing.json"))
+    with pytest.raises(GeeConfigError, match="missing file"):
+        load_config(dotenv_path=None).require_gee()
 
 
 def test_require_gee_returns_credentials(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -171,20 +171,19 @@ class Config(_Section):
             return json.load(fh)
 
     def require_gee(self) -> GeeCredentials:
-        """Return GEE credentials, raising a clear error if any are missing."""
-        missing: list[str] = []
+        """Return GEE settings, raising a clear error if they are unusable.
+
+        ``GEE_PROJECT`` is required. ``GEE_SERVICE_ACCOUNT_KEY`` is optional: when unset, Earth
+        Engine uses personal credentials from ``earthengine authenticate``; when set, the key
+        file must exist.
+        """
         if not self.gee.project:
-            missing.append(ENV_GEE_PROJECT)
-        if self.gee.service_account_key is None:
-            missing.append(ENV_GEE_SERVICE_ACCOUNT_KEY)
-        if missing:
             raise GeeConfigError(
-                f"Missing Earth Engine settings: {', '.join(missing)}. "
-                "Set them in the repo-root .env file (see .env.example) or in the environment."
+                f"Missing Earth Engine setting: {ENV_GEE_PROJECT}. "
+                "Set it in the repo-root .env file (see .env.example) or in the environment."
             )
         key = self.gee.service_account_key
-        assert key is not None
-        if not key.is_file():
+        if key is not None and not key.is_file():
             raise GeeConfigError(f"{ENV_GEE_SERVICE_ACCOUNT_KEY} points to a missing file: {key}")
         return self.gee
 
