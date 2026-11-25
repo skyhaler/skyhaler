@@ -7,6 +7,7 @@ optionally populated from the repo-root ``.env`` file.
 
 from __future__ import annotations
 
+import calendar
 import json
 import os
 from datetime import date, timedelta
@@ -57,7 +58,9 @@ class SeasonConfig(_Section):
     year: int = Field(ge=2015, le=2100)
     start: str = Field(pattern=r"^\d{2}-\d{2}$", description="MM-DD")
     end: str = Field(pattern=r"^\d{2}-\d{2}$", description="MM-DD, inclusive")
-    composite_days: int = Field(gt=0)
+    composite: Literal["dekad", "month"] = Field(
+        description="calendar composite windows: dekad (1-10, 11-20, 21-end) or month"
+    )
 
     @model_validator(mode="after")
     def _check_dates(self) -> SeasonConfig:
@@ -147,17 +150,17 @@ class Config(_Section):
     gee: GeeCredentials = GeeCredentials()
 
     def periods(self) -> list[tuple[date, date]]:
-        """Consecutive composite windows covering the season, as inclusive (start, end) dates.
+        """Calendar composite windows covering the season, as inclusive (start, end) dates.
 
-        Each window is ``composite_days`` long; the last one is truncated so it ends exactly
-        on the season end date.
+        ``dekad``: days 1-10, 11-20 and 21-last day of each month. ``month``: whole months.
+        The first and last windows are clipped to the season start and end, so windows are
+        contiguous, with no gaps or overlaps.
         """
         season_end = self.season.end_date
-        step = timedelta(days=self.season.composite_days)
         windows: list[tuple[date, date]] = []
         current = self.season.start_date
         while current <= season_end:
-            window_end = min(current + step - timedelta(days=1), season_end)
+            window_end = min(_calendar_window_end(current, self.season.composite), season_end)
             windows.append((current, window_end))
             current = window_end + timedelta(days=1)
         return windows
@@ -184,6 +187,14 @@ class Config(_Section):
         if not key.is_file():
             raise GeeConfigError(f"{ENV_GEE_SERVICE_ACCOUNT_KEY} points to a missing file: {key}")
         return self.gee
+
+
+def _calendar_window_end(day: date, composite: str) -> date:
+    """Last day of the calendar dekad or month that contains ``day``."""
+    month_end = date(day.year, day.month, calendar.monthrange(day.year, day.month)[1])
+    if composite == "month" or day.day > 20:
+        return month_end
+    return day.replace(day=10 if day.day <= 10 else 20)
 
 
 def _read_gee_from_env() -> GeeCredentials:

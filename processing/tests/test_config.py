@@ -48,23 +48,52 @@ def test_load_is_independent_of_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     assert load_config(dotenv_path=None).aoi.file.is_file()
 
 
-def test_default_periods() -> None:
+def _assert_contiguous(periods: list[tuple[date, date]]) -> None:
+    for start, end in periods:
+        assert start <= end
+    for (_, prev_end), (next_start, _) in zip(periods, periods[1:]):
+        assert (next_start - prev_end).days == 1
+
+
+def test_default_periods_are_dekads() -> None:
     config = load_config(dotenv_path=None)
     periods = config.periods()
-    # 1 Jul - 30 Sep 2025 = 92 days -> 9 full 10-day windows + one 2-day window.
-    assert len(periods) == 10
+    assert config.season.composite == "dekad"
+    assert len(periods) == 9
     assert periods[0] == (date(2025, 7, 1), date(2025, 7, 10))
-    assert periods[-1] == (date(2025, 9, 29), date(2025, 9, 30))
-    assert periods[-1][1] == config.season.end_date
+    assert periods[2] == (date(2025, 7, 21), date(2025, 7, 31))
+    assert periods[-1] == (date(2025, 9, 21), date(2025, 9, 30))
+    _assert_contiguous(periods)
 
 
-def test_periods_are_contiguous_and_cover_season() -> None:
+def test_periods_cover_season_without_gaps_or_overlaps() -> None:
     config = load_config(dotenv_path=None)
     periods = config.periods()
     assert periods[0][0] == config.season.start_date
     assert periods[-1][1] == config.season.end_date
-    for (_, prev_end), (next_start, _) in zip(periods, periods[1:]):
-        assert (next_start - prev_end).days == 1
+    _assert_contiguous(periods)
+    total_days = sum((end - start).days + 1 for start, end in periods)
+    assert total_days == (config.season.end_date - config.season.start_date).days + 1
+
+
+def test_dekads_clipped_to_season(tmp_path: Path, base_raw: dict[str, Any]) -> None:
+    base_raw["season"].update({"year": 2024, "start": "02-15", "end": "03-05"})
+    periods = _load_modified(tmp_path, base_raw).periods()
+    assert periods == [
+        (date(2024, 2, 15), date(2024, 2, 20)),
+        (date(2024, 2, 21), date(2024, 2, 29)),
+        (date(2024, 3, 1), date(2024, 3, 5)),
+    ]
+
+
+def test_monthly_periods(tmp_path: Path, base_raw: dict[str, Any]) -> None:
+    base_raw["season"]["composite"] = "month"
+    periods = _load_modified(tmp_path, base_raw).periods()
+    assert periods == [
+        (date(2025, 7, 1), date(2025, 7, 31)),
+        (date(2025, 8, 1), date(2025, 8, 31)),
+        (date(2025, 9, 1), date(2025, 9, 30)),
+    ]
 
 
 def test_aoi_geojson_is_bucharest_polygon() -> None:
@@ -86,8 +115,11 @@ def test_invalid_season_date_fails(tmp_path: Path, base_raw: dict[str, Any]) -> 
         _load_modified(tmp_path, base_raw)
 
 
-def test_zero_composite_days_fails(tmp_path: Path, base_raw: dict[str, Any]) -> None:
-    base_raw["season"]["composite_days"] = 0
+@pytest.mark.parametrize("composite", ["week", 10, None])
+def test_invalid_composite_fails(
+    tmp_path: Path, base_raw: dict[str, Any], composite: object
+) -> None:
+    base_raw["season"]["composite"] = composite
     with pytest.raises(ValidationError):
         _load_modified(tmp_path, base_raw)
 

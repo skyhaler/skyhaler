@@ -10,7 +10,7 @@ read values from it and never hard-code dates, area, thresholds or `k`.
 | Section | Holds |
 | --- | --- |
 | `aoi` | Study area file (`aoi/bucharest.geojson`, Municipiul București from OSM, EPSG:4326) and buffer |
-| `season` | Analysis year, season start/end (`MM-DD`) and composite window length |
+| `season` | Analysis year, season start/end (`MM-DD`) and composite windows (`dekad` or `month`) |
 | `crs` | Storage CRS (EPSG:4326) and metric CRS (EPSG:32635, UTM 35N) |
 | `grid_resolution_m` | Analysis grid cell size |
 | `sentinel2` / `sentinel1` / `sentinel5p` | GEE collections, cloud / QA filters, polarisations, NO2 scaling |
@@ -28,7 +28,7 @@ Secrets and per-person values come from environment variables (or the repo-root 
 from skyhaler_processing import load_config
 
 config = load_config()  # processing/config.yaml + repo-root .env
-config.periods()  # [(date(2025, 7, 1), date(2025, 7, 10)), ...] inclusive windows
+config.periods()  # dekads: [(date(2025, 7, 1), date(2025, 7, 10)), ...] inclusive
 config.aoi_geojson()  # parsed AOI GeoJSON
 gee = config.require_gee()  # raises GeeConfigError if GEE settings are missing
 ```

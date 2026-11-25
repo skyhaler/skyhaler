@@ -10,7 +10,7 @@ season:
   year: 2025 # DECIDE: analysis year; must match the VHR imagery acquisition year
   start: "07-01" # First day of the season (MM-DD)
   end: "09-30" # Last day of the season (MM-DD), inclusive
-  composite_days: 10 # DECIDE: length of each composite window in days
+  composite: dekad # DECIDE: composite windows; dekad = days 1-10, 11-20, 21-month end; or month
 
 crs:
   storage: "EPSG:4326" # CRS for stored/exported vectors and GeoJSON (WGS 84)
