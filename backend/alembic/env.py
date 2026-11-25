@@ -30,10 +30,13 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 POSTGIS_SYSTEM_TABLES = {"spatial_ref_sys", "geometry_columns", "geography_columns"}
+POSTGIS_SCHEMAS = {"tiger", "topology"}
 
 
 def include_object(object, name, type_, reflected, compare_to):
     if type_ == "table" and name in POSTGIS_SYSTEM_TABLES:
+        return False
+    if type_ == "table" and object.schema in POSTGIS_SCHEMAS:
         return False
     return True
 
