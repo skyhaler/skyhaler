@@ -1,0 +1,36 @@
+# Skyhaler processing configuration: single source of truth for all non-secret parameters.
+# Secrets and per-person values (GEE_PROJECT, GEE_SERVICE_ACCOUNT_KEY) come from .env, never from here.
+# Relative paths are resolved against the processing/ folder.
+
+aoi:
+  file: aoi/bucharest.geojson # Study area boundary (Municipiul București, OSM relation 377733)
+  buffer_m: 0 # DECIDE: buffer around the AOI in metres; >0 includes a strip of Ilfov
+
+season:
+  year: 2025 # DECIDE: analysis year; must match the VHR imagery acquisition year
+  start: "07-01" # First day of the season (MM-DD)
+  end: "09-30" # Last day of the season (MM-DD), inclusive
+  composite: dekad # DECIDE: composite windows; dekad = days 1-10, 11-20, 21-month end; or month
+
+crs:
+  storage: "EPSG:4326" # CRS for stored/exported vectors and GeoJSON (WGS 84)
+  metric: "EPSG:32635" # Metric CRS for buffers, areas and the analysis grid (UTM 35N)
+
+grid_resolution_m: 10 # Analysis grid cell size in metres (native Sentinel-2 10 m bands)
+
+sentinel2:
+  collection: "COPERNICUS/S2_SR_HARMONIZED" # Surface reflectance, harmonised across processing baselines
+  cloud_score_threshold: 0.6 # Cloud Score+ cs_cdf: keep pixels with score >= this value
+
+sentinel1:
+  collection: "COPERNICUS/S1_GRD" # C-band SAR, ground range detected
+  polarisations: ["VV", "VH"] # Polarisations to load
+
+sentinel5p:
+  collection: "COPERNICUS/S5P/OFFL/L3_NO2" # TROPOMI offline NO2 (L3)
+  qa_min: 0.75 # Minimum qa_value for a valid NO2 pixel
+  normalise_percentiles: [5, 95] # Low/high percentiles used to scale NO2 to 0..1
+
+risk:
+  k: 0.5 # Weight of the NO2 term when combining with the pollen-source score
+  thresholds: [0.33, 0.66] # Class breaks: < 0.33 low, 0.33-0.66 medium, >= 0.66 high
