@@ -14,70 +14,21 @@ from __future__ import annotations
 
 import sys
 from datetime import timedelta
-from typing import Any
 
 from skyhaler_processing.config import (
     ENV_GEE_PROJECT,
     ENV_GEE_SERVICE_ACCOUNT_KEY,
-    Config,
     GeeConfigError,
     load_config,
 )
+from skyhaler_processing.gee import aoi_geometry, explain_error, initialise
 
 SOURCE_CREDIT = "Sursa datelor: Copernicus Sentinel-2 (ESA), prin Google Earth Engine."
-
-ROLES_HINT = (
-    "Cere administratorului proiectului rolurile IAM 'Earth Engine Resource Writer' și "
-    "'Service Usage Consumer' pentru contul tău Google (vezi processing/README.md)."
-)
-
-
-def explain_error(message: str, project: str) -> str:
-    """Translate an Earth Engine / Google API error message into a Romanian fix-it hint."""
-    text = message.lower()
-    if "serviceusage" in text:
-        return f"Lipsește rolul 'Service Usage Consumer' pe proiectul '{project}'. {ROLES_HINT}"
-    if any(
-        s in text
-        for s in ("not found", "not registered", "not signed up", "has not been used", "disabled")
-    ):
-        return (
-            f"Proiectul '{project}' nu există, nu este înregistrat pentru Earth Engine sau API-ul "
-            f"Earth Engine nu este activat. Verifică {ENV_GEE_PROJECT} în fișierul .env "
-            "(valoarea corectă este în .env.example)."
-        )
-    if any(s in text for s in ("permission", "403", "forbidden", "access denied")):
-        return f"Contul tău nu are acces la proiectul '{project}'. {ROLES_HINT}"
-    if any(
-        s in text
-        for s in (
-            "authenticate",
-            "authorize",
-            "credentials",
-            "invalid_grant",
-            "reauth",
-            "token",
-            "401",
-        )
-    ):
-        return (
-            "Nu ești autentificat în Earth Engine (sau autentificarea a expirat). "
-            "Rulează: earthengine authenticate"
-        )
-    return f"Eroare neașteptată de la Earth Engine: {message}"
 
 
 def _fail(message: str) -> int:
     print(f"EROARE: {message}", file=sys.stderr)
     return 1
-
-
-def _aoi_geometry(ee: Any, config: Config) -> Any:
-    feature = config.aoi_geojson()["features"][0]
-    geometry = ee.Geometry(feature["geometry"])
-    if config.aoi.buffer_m > 0:
-        geometry = geometry.buffer(config.aoi.buffer_m)
-    return geometry
 
 
 def main() -> int:
@@ -101,19 +52,13 @@ def main() -> int:
     assert gee.project is not None
 
     try:
-        if gee.service_account_key is not None:
-            credentials = ee.ServiceAccountCredentials(key_file=str(gee.service_account_key))
-            ee.Initialize(credentials=credentials, project=gee.project)
-            auth = f"cont de serviciu ({gee.service_account_key.name})"
-        else:
-            ee.Initialize(project=gee.project)
-            auth = "cont Google personal (earthengine authenticate)"
+        auth = initialise(ee, gee)
 
         start = config.season.start_date
         end_exclusive = config.season.end_date + timedelta(days=1)
         count = (
             ee.ImageCollection(config.sentinel2.collection)
-            .filterBounds(_aoi_geometry(ee, config))
+            .filterBounds(aoi_geometry(ee, config))
             .filterDate(start.isoformat(), end_exclusive.isoformat())
             .size()
             .getInfo()
