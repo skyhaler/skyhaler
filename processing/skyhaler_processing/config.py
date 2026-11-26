@@ -28,6 +28,10 @@ ENV_GEE_SERVICE_ACCOUNT_KEY = "GEE_SERVICE_ACCOUNT_KEY"
 
 EpsgCode = Annotated[str, Field(pattern=r"^EPSG:\d+$")]
 UnitInterval = Annotated[float, Field(ge=0.0, le=1.0)]
+Sentinel2Index = Literal["NDVI", "NDRE", "NDMI", "MNDWI", "BSI"]
+
+# Earth Engine asset folder below projects/<GEE_PROJECT>/assets/, e.g. "composites" or "a/b".
+ASSET_FOLDER_PATTERN = r"^[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$"
 
 
 class GeeConfigError(RuntimeError):
@@ -95,7 +99,17 @@ class CrsConfig(_Section):
 
 class Sentinel2Config(_Section):
     collection: str = Field(min_length=1)
+    cloud_score_collection: str = Field(min_length=1)
+    cloud_score_band: str = Field(min_length=1)
     cloud_score_threshold: UnitInterval
+    indices: list[Sentinel2Index] = Field(min_length=1)
+
+    @field_validator("indices")
+    @classmethod
+    def _check_unique_indices(cls, value: list[str]) -> list[str]:
+        if len(set(value)) != len(value):
+            raise ValueError(f"indices must not contain duplicates, got {value}")
+        return value
 
 
 class Sentinel1Config(_Section):
@@ -115,6 +129,26 @@ class Sentinel5pConfig(_Section):
         if not (0.0 <= low < high <= 100.0):
             raise ValueError(f"percentiles must be increasing and within [0, 100], got {value}")
         return value
+
+
+class ExportConfig(_Section):
+    destination: Literal["asset", "drive"] = Field(
+        description="where composites are exported: a shared Earth Engine asset or Google Drive"
+    )
+    asset_folder: str = Field(
+        pattern=ASSET_FOLDER_PATTERN,
+        description="folder below projects/<GEE_PROJECT>/assets/ (destination: asset)",
+    )
+    drive_folder: str = Field(min_length=1, description="Drive folder name (destination: drive)")
+    quicklook_dir: Path = Field(description="local output folder of the visual check (git-ignored)")
+
+    @field_validator("quicklook_dir")
+    @classmethod
+    def _resolve_against_processing_dir(cls, value: Path) -> Path:
+        path = value.expanduser()
+        if not path.is_absolute():
+            path = PROCESSING_DIR / path
+        return path.resolve()
 
 
 class RiskConfig(_Section):
@@ -146,6 +180,7 @@ class Config(_Section):
     sentinel2: Sentinel2Config
     sentinel1: Sentinel1Config
     sentinel5p: Sentinel5pConfig
+    export: ExportConfig
     risk: RiskConfig
     gee: GeeCredentials = GeeCredentials()
 

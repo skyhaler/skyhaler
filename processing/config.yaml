@@ -20,7 +20,10 @@ grid_resolution_m: 10 # Analysis grid cell size in metres (native Sentinel-2 10 
 
 sentinel2:
   collection: "COPERNICUS/S2_SR_HARMONIZED" # Surface reflectance, harmonised across processing baselines
+  cloud_score_collection: "GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED" # Cloud Score+ (per-pixel clear-sky quality)
+  cloud_score_band: cs_cdf # Cloud Score+ band used for masking (cs_cdf = less sensitive to illumination)
   cloud_score_threshold: 0.6 # Cloud Score+ cs_cdf: keep pixels with score >= this value
+  indices: [NDVI, NDRE, NDMI, MNDWI, BSI] # Spectral indices added to every composite
 
 sentinel1:
   collection: "COPERNICUS/S1_GRD" # C-band SAR, ground range detected
@@ -30,6 +33,12 @@ sentinel5p:
   collection: "COPERNICUS/S5P/OFFL/L3_NO2" # TROPOMI offline NO2 (L3)
   qa_min: 0.75 # Minimum qa_value for a valid NO2 pixel
   normalise_percentiles: [5, 95] # Low/high percentiles used to scale NO2 to 0..1
+
+export:
+  destination: asset # asset = shared Earth Engine assets in the team project; drive = your own Google Drive
+  asset_folder: composites # Folder below projects/<GEE_PROJECT>/assets/ (created if missing)
+  drive_folder: skyhaler_composites # Google Drive folder, used only when destination is drive
+  quicklook_dir: ../data/quicklook # Local visual-check output (data/ is git-ignored)
 
 risk:
   k: 0.5 # Weight of the NO2 term when combining with the pollen-source score
