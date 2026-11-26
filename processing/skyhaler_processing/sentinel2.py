@@ -30,7 +30,6 @@ SUPPORTED_INDICES = [*NORMALISED_DIFFERENCES, "BSI"]
 
 @dataclass(frozen=True)
 class Grid:
-
     crs: str
     transform: list[float]
     width: int
