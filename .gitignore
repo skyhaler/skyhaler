@@ -13,6 +13,9 @@ __pycache__/
 .env
 !.env.example
 
+# Local data (imagery, exports, quick-looks): never commit, licence is private-only
+data/
+
 # Tooling caches
 .pytest_cache/
 .mypy_cache/
