@@ -115,6 +115,16 @@ class Sentinel2Config(_Section):
 class Sentinel1Config(_Section):
     collection: str = Field(min_length=1)
     polarisations: list[Literal["VV", "VH", "HH", "HV"]] = Field(min_length=1)
+    instrument_mode: Literal["IW", "EW"]
+    orbit_pass: Literal["ASCENDING", "DESCENDING", "BOTH"]
+    noise_floor_db: float = Field(le=0.0, description="backscatter (dB) below this is masked")
+
+    @field_validator("polarisations")
+    @classmethod
+    def _unique_polarisations(cls, value: list[str]) -> list[str]:
+        if len(set(value)) != len(value):
+            raise ValueError(f"polarisations must be unique, got {value}")
+        return value
 
 
 class Sentinel5pConfig(_Section):
