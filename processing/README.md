@@ -109,6 +109,32 @@ Quick-look output goes to `export.quicklook_dir` (`../data/quicklook`, outside g
 Data: contains modified Copernicus Sentinel-2 data (ESA), processed with Google Earth Engine; cloud
 mask Cloud Score+ (Google). Keep exports and thumbnails private (no public hosting).
 
+## Sentinel-1 composites (task #10)
+
+Median SAR backscatter composites on the same windows and the same 10 m grid as the Sentinel-2
+composites, so the layers line up pixel by pixel (shared code in `skyhaler_processing/grid.py`).
+Each composite has `VV` and `VH` in dB, `VH_VV` (VH - VV in dB, cross-polarisation ratio) and
+`n_obs` (number of observations per pixel; 0 = gap).
+
+- **Scenes:** `COPERNICUS/S1_GRD` (already calibrated, noise-removed and terrain corrected),
+  `sentinel1.instrument_mode` (IW) and one `sentinel1.orbit_pass` (DESCENDING by default; use one
+  pass so the incidence angle stays comparable, or `BOTH` to get more observations).
+- **Mask:** backscatter below `sentinel1.noise_floor_db` (-30 dB) is treated as noise / scene border.
+  There is no cloud mask: radar sees through clouds.
+- **Names:** `s1_<year>_dekad_<MMDD>_<MMDD>`, in the same asset folder as the Sentinel-2 composites.
+
+```bash
+cd processing
+python scripts/export_s1_composites.py --dry-run                    # list the windows, no GEE needed
+python scripts/export_s1_composites.py --period 2025-07-01 --wait   # one window as a test
+python scripts/quicklook_s1.py                                      # VV / VH / n_obs previews + index_s1.html
+python scripts/export_s1_composites.py --wait                       # all windows (existing assets skipped)
+```
+
+Same options as the Sentinel-2 export (`--overwrite`, `--wait`, `--poll-seconds`). Data: contains
+modified Copernicus Sentinel-1 data (ESA), processed with Google Earth Engine; keep exports and
+thumbnails private.
+
 ## Development
 
 ```bash
