@@ -13,7 +13,9 @@ read values from it and never hard-code dates, area, thresholds or `k`.
 | `season` | Analysis year, season start/end (`MM-DD`) and composite windows (`dekad` or `month`) |
 | `crs` | Storage CRS (EPSG:4326) and metric CRS (EPSG:32635, UTM 35N) |
 | `grid_resolution_m` | Analysis grid cell size |
-| `sentinel2` / `sentinel1` / `sentinel5p` | GEE collections, cloud / QA filters, polarisations, NO2 scaling |
+| `sentinel2` | GEE collection, Cloud Score+ collection/band/threshold, spectral `indices` |
+| `sentinel1` / `sentinel5p` | GEE collections, QA filters, polarisations, NO2 scaling |
+| `export` | Export `destination` (`asset` or `drive`), `asset_folder`, `drive_folder`, `quicklook_dir` |
 | `risk` | Weight `k` and low/medium/high class thresholds |
 
 Secrets and per-person values come from environment variables (or the repo-root `.env`, see
@@ -74,6 +76,38 @@ signs in with their own Google account; no service account key is needed.
 
 **Never commit a key file or credentials.** Keep any service account JSON key outside the repo
 and only point to it with `GEE_SERVICE_ACCOUNT_KEY` in your local `.env`.
+
+## Sentinel-2 composites (task #9)
+
+Cloud-masked median composites, one per window in `season` (9 dekads, Jul–Sep). Each composite has
+10 reflectance bands (`B2`..`B12`, scaled to 0–1), the indices listed in `sentinel2.indices`
+(NDVI, NDRE, NDMI, MNDWI, BSI) and `n_obs` (number of clear observations per pixel; 0 = gap).
+
+- **Mask:** Cloud Score+ `cs_cdf >= sentinel2.cloud_score_threshold` (0.6).
+- **Grid:** fixed 10 m grid in EPSG:32635, snapped to multiples of 10 m, so every composite (and
+  later the Sentinel-1 / risk layers) lines up pixel for pixel.
+- **Names:** `s2_<year>_dekad_<MMDD>_<MMDD>`, under `projects/<GEE_PROJECT>/assets/<export.asset_folder>/`.
+
+Decide `season.year` in `config.yaml` before the first export (it must match the VHR imagery year
+you validate against).
+
+```bash
+cd processing
+python scripts/export_s2_composites.py --dry-run             # list what would be exported, no GEE needed
+python scripts/export_s2_composites.py --period 2025-07-01 --wait   # one window as a test
+python scripts/quicklook_s2.py                               # RGB / NDVI / n_obs thumbnails + index.html
+python scripts/export_s2_composites.py                       # all windows (existing assets are skipped)
+```
+
+Options of the export script: `--overwrite` (replace existing assets), `--wait` (poll until the
+tasks finish), `--poll-seconds N`. Set `export.destination: drive` to write GeoTIFFs to the Drive
+folder `export.drive_folder` instead of Earth Engine assets.
+
+Quick-look output goes to `export.quicklook_dir` (`../data/quicklook`, outside git): open
+`index.html`, check each window for cloud artefacts and large gaps (gap fraction is printed too).
+
+Data: contains modified Copernicus Sentinel-2 data (ESA), processed with Google Earth Engine; cloud
+mask Cloud Score+ (Google). Keep exports and thumbnails private (no public hosting).
 
 ## Development
 
