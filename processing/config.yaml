@@ -28,6 +28,9 @@ sentinel2:
 sentinel1:
   collection: "COPERNICUS/S1_GRD" # C-band SAR, ground range detected
   polarisations: ["VV", "VH"] # Polarisations to load
+  instrument_mode: IW # Interferometric Wide swath (standard land mode, 10 m GRD)
+  orbit_pass: DESCENDING # ASCENDING, DESCENDING or BOTH; one pass keeps the incidence angle stable
+  noise_floor_db: -30.0 # Backscatter below this value (dB) is treated as noise/border and masked
 
 sentinel5p:
   collection: "COPERNICUS/S5P/OFFL/L3_NO2" # TROPOMI offline NO2 (L3)
